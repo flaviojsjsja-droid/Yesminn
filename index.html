@@ -54,7 +54,10 @@
 <body>
 
   <!-- Elemento de Audio -->
-  <audio id="bg-music" src="Cancion.mp3" preload="auto"></audio>
+  <audio id="bg-music" preload="auto" loop>
+    <source src="Cancion.mp3" type="audio/mpeg">
+    <source src="cancion.mp3" type="audio/mpeg">
+  </audio>
 
   <!-- Pantalla de Bienvenida -->
   <div id="welcome-screen">
@@ -87,8 +90,8 @@
     let textSprites = [];
     let loadedImages = [];
 
-    // Incluimos las 7 imágenes enviadas
-    const imageSources = ['Foto1.png', 'Foto2.png', 'Foto3.png', 'Foto4.png', 'Foto5.png', 'Foto6.png', 'Foto8.png'];
+    // Lista de imágenes
+    const imageSources = ['Foto1.png', 'Foto2.png', 'Foto3.png', 'Foto5.png', 'Foto6.png', 'Foto7.png', 'Foto8.png'];
 
     const basePhrases = [
       "AMOR ETERNO ❤️", "INFINITO ∞", "CONTIGO SIEMPRE", "MI CORAZÓN ES TUYO",
@@ -121,20 +124,23 @@
     function playAudioAtChorus() {
       const audio = document.getElementById('bg-music');
       if (audio) {
-        audio.currentTime = 34.8;
-        audio.volume = 0;
-        audio.play().then(() => {
-          let vol = 0;
-          const fadeInterval = setInterval(() => {
-            if (vol < 0.9) {
-              vol += 0.05;
-              audio.volume = vol;
-            } else {
-              audio.volume = 1.0;
-              clearInterval(fadeInterval);
-            }
-          }, 75);
-        }).catch(err => console.log("Autoplay bloqueado:", err));
+        try {
+          audio.currentTime = 34.8;
+        } catch(e) {
+          console.log("No se pudo saltar al segundo 34.8 directamente.");
+        }
+        audio.volume = 1.0;
+        
+        let playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            console.log("Reproduciendo audio correctamente");
+          }).catch(err => {
+            console.log("Reintentando reproducir desde 0:", err);
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Bloqueado completamente por el navegador:", e));
+          });
+        }
       }
     }
 
@@ -170,6 +176,14 @@
 
       window.addEventListener('resize', onWindowResize);
       document.getElementById('start-btn').addEventListener('click', startExperience);
+
+      // Respaldo por si el usuario toca cualquier parte de la pantalla
+      document.addEventListener('touchstart', function() {
+        const audio = document.getElementById('bg-music');
+        if (audio && audio.paused) {
+          audio.play();
+        }
+      }, { once: true });
     }
 
     function createBackgroundStars() {
